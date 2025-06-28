@@ -14,10 +14,26 @@
 //*
 class WindowManager {
     sf::RenderWindow window;
-
+    bool draw_extra_lines = false;
 public:
     explicit WindowManager(int window_width = 600, int window_height = 800) :
             window(sf::VideoMode(window_width, window_height), "Lima City Graph") {
+    }
+
+    bool show_extra_lines()
+    {
+        return draw_extra_lines;
+    }
+
+    bool switch_extra_lines()
+    {
+        draw_extra_lines = !draw_extra_lines;
+        return draw_extra_lines;
+    }
+
+    void set_extra_lines(bool extra_lines)
+    {
+        draw_extra_lines = extra_lines;
     }
 
     bool is_open() {

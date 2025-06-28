@@ -6,6 +6,9 @@
 #define HOMEWORK_GRAPH_PATH_FINDING_MANAGER_H
 
 
+#include <iostream>
+#include <queue>
+
 #include "window_manager.h"
 #include "graph.h"
 #include <unordered_map>
@@ -16,7 +19,8 @@
 enum Algorithm {
     None,
     Dijkstra,
-    AStar
+    AStar,
+    BFS
 };
 
 
@@ -44,27 +48,79 @@ class PathFindingManager {
         bool operator < (const Entry& other) const {
             return dist < other.dist;
         }
+
+        bool operator > (const Entry& other) const {
+            return dist > other.dist;
+        }
     };
+
+    static constexpr double INF = std::numeric_limits<double>::max();
+
+    void bfs(const Graph &graph)
+    {
+        std::unordered_map<Node *, Node *> parent;
+
+        std::priority_queue<Entry, std::vector<Entry>, std::greater<>> queue;
+        std::set<Node*> visited;
+
+        auto f = [&](const Node* node) -> double // Manhattan distance
+        {
+            const auto dx = (dest->coord.x - node->coord.x);
+            const auto dy = (dest->coord.y - node->coord.y);
+            return dx * dx + dy * dy;
+        };
+
+        queue.push({src, f(src)});
+        visited.insert(src);
+
+        while (!queue.empty()) {
+            auto [node, dist] = queue.top(); queue.pop();;
+            if (node == dest) break;
+
+            for (const auto &edge: node->edges)
+                if (auto adj_node = edge->dest;
+                    !visited.count(adj_node))
+                {
+                    visited.insert(node);
+                    parent[adj_node] = node;
+
+                    // Draw each edge per iteration
+                    visited_edges.emplace_back(node->coord, adj_node->coord, edge->color, edge->thickness);
+                    render();
+
+                    queue.push({adj_node, f(adj_node)});
+                }
+        }
+
+        set_final_path(parent, dest);
+    }
 
     void dijkstra(Graph &graph) {
         std::unordered_map<Node *, Node *> parent;
         // TODO: Add your code here
 
-        set_final_path(parent);
+
+
+        set_final_path(parent, nullptr);
     }
 
     void a_star(Graph &graph) {
         std::unordered_map<Node *, Node *> parent;
         // TODO: Add your code here
 
-        set_final_path(parent);
+        set_final_path(parent, nullptr);
     }
 
     //* --- render ---
     // En cada iteración de los algoritmos esta función es llamada para dibujar los cambios en el 'window_manager'
     void render() {
-        sf::sleep(sf::milliseconds(10));
-        // TODO: Add your code here
+        sf::sleep(sf::milliseconds(5));
+        auto &w = window_manager->get_window();
+
+        // Black screen it to show only the path
+        w.clear(sf::Color::Black);
+        draw();
+        w.display();
     }
 
     //* --- set_final_path ---
@@ -82,10 +138,18 @@ class PathFindingManager {
     //
     // Este path será utilizado para hacer el 'draw()' del 'path' entre 'src' y 'dest'.
     //*
-    void set_final_path(std::unordered_map<Node *, Node *> &parent) {
-        Node* current = dest;
+    void set_final_path(std::unordered_map<Node *, Node *> &parent, Node *node) {
+        std::vector<sfLine> newPath;
+        Node* current = node;
 
-        // TODO: Add your code here
+        while (current && parent.count(current)) {
+            Node* prev = parent[current];
+            if (prev == current || prev == nullptr) break;
+            newPath.emplace_back(current->coord, prev->coord, sf::Color::Blue, default_thickness);
+            current = prev;
+        }
+
+        path = newPath;
     }
 
 public:
@@ -99,7 +163,24 @@ public:
             return;
         }
 
-        // TODO: Add your code here
+        if (algorithm == None)
+        {
+            return;
+        }
+
+        window_manager->set_extra_lines(true);
+        switch (algorithm)
+        {
+        case None: // just because C++ warning
+        case Dijkstra:
+            dijkstra(graph);
+            return;
+        case AStar:
+            a_star(graph);
+            return;
+        case BFS:
+            bfs(graph);
+        }
     }
 
     void reset() {
@@ -118,9 +199,9 @@ public:
         }
     }
 
-    void draw(bool draw_extra_lines) {
+    void draw() {
         // Dibujar todas las aristas visitadas
-        if (draw_extra_lines) {
+        if (window_manager->show_extra_lines()) {
             for (sfLine &line: visited_edges) {
                 line.draw(window_manager->get_window(), sf::RenderStates::Default);
             }

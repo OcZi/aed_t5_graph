@@ -53,7 +53,6 @@ public:
     }
 
     void main_loop() {
-        bool draw_extra_lines = false;
 
         // Corre la GUI siempre y cuando la ventana esté abierta
         while (window_manager.is_open()) {
@@ -84,6 +83,10 @@ public:
                                 path_finding_manager.exec(graph, AStar);
                                 break;
                             }
+                            case sf::Keyboard::S: {
+                                path_finding_manager.exec(graph, BFS);
+                                break;
+                            }
                             // R = Limpia la ultima simulación realizada.
                             //     También restaura los valores de 'src' y 'dest' a nullptr.
                             case sf::Keyboard::R: {
@@ -93,7 +96,7 @@ public:
                             // E = Extra flag. Si es verdadero, hace un display de todos los 'edges'
                             //     visitados en la ejecución del último algoritmo.
                             case sf::Keyboard::E: {
-                                draw_extra_lines = !draw_extra_lines;
+                                window_manager.switch_extra_lines();
                                 break;
                             }
                             // Q = Quit, misma funcionalidad que cerrar la ventana
@@ -144,7 +147,7 @@ public:
             graph.draw();
             // Dibuja el 'path' resultante de la simulacion,
             // si 'extra_lines' es true, también dibujará el resto de aristas visitadas
-            path_finding_manager.draw(draw_extra_lines);
+            path_finding_manager.draw();
 
             // Hace un display del frame actual
             window_manager.display();

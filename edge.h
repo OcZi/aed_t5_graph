@@ -19,6 +19,10 @@ float default_thickness = 0.8;
 
 // No tocar esta clase
 class sfLine : public sf::Drawable {
+
+    sf::Vertex Vertices[4];
+    float thickness;
+    sf::Color color {};
 public:
     sfLine(const sf::Vector2f& point1, const sf::Vector2f& point2, sf::Color color, float thickness)
     : thickness(thickness) {
@@ -42,10 +46,10 @@ public:
         target.draw(Vertices,4,sf::Quads);
     }
 
-private:
-    sf::Vertex Vertices[4];
-    float thickness;
-    sf::Color color {};
+    sf::Vertex* get_vertices()
+    {
+        return Vertices;
+    }
 };
 
 
