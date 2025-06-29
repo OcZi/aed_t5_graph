@@ -12,7 +12,7 @@ add_executable(${PROJECT_NAME} main.cpp
         path_finding_manager.h
 )
 
-find_package(SFML 2.6.2 COMPONENTS graphics window REQUIRED)
+find_package(SFML 2.5 COMPONENTS graphics window REQUIRED)
 if(SFML_FOUND)
     target_link_libraries(${PROJECT_NAME} PRIVATE sfml-graphics sfml-window)
 else()
