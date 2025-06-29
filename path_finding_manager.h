@@ -6,6 +6,7 @@
 #define HOMEWORK_GRAPH_PATH_FINDING_MANAGER_H
 
 
+#include <functional>
 #include <iostream>
 #include <queue>
 
@@ -95,11 +96,60 @@ class PathFindingManager {
         set_final_path(parent, dest);
     }
 
+    /*
+    Graph 
+        std::map<size_t, Node *> nodes;
+        std::vector<Edge *> edges;
+    */
+
     void dijkstra(Graph &graph) {
         std::unordered_map<Node *, Node *> parent;
-        // TODO: Add your code here
+        std::unordered_map<Node*, double> dist;
 
+        for (auto& [id, node]: graph.nodes){
+            dist[node] = INF;
+        }
+        dist[src] = 0;
 
+        std::priority_queue<Entry, std::vector<Entry>, std::greater<>> q;
+        
+        q.push({src, 0});
+
+        while(!q.empty()) {
+            auto [curr_node, curr_dist] = q.top();
+            q.pop();
+
+            if (curr_dist > dist[curr_node]){
+                continue; // no vale
+            }
+
+            if (curr_node == dest){
+                break;
+            }
+
+            for (const auto &edge : curr_node->edges){
+                Node* adj = (edge->src == curr_node) ? edge->dest : edge->src;
+
+                if (edge->one_way && edge->src != curr_node) {
+                    continue;
+                }
+
+                double new_dist = dist[curr_node] + edge->length;
+
+                if (new_dist < dist[adj]){
+                    dist[adj] = new_dist;
+                    parent[adj] = curr_node;
+                    q.push({adj, new_dist});
+
+                    visited_edges.emplace_back(
+                        curr_node->coord,
+                        adj->coord,
+                        edge->color,
+                        edge->thickness
+                    );
+                }
+            }
+        }
 
         set_final_path(parent, nullptr);
     }
@@ -107,6 +157,53 @@ class PathFindingManager {
     void a_star(Graph &graph) {
         std::unordered_map<Node *, Node *> parent;
         // TODO: Add your code here
+
+        std::unordered_map<Node*, double> dist;
+
+        auto h = [&](Node* n){
+            double dx = dest->coord.x - n->coord.x;
+            double dy = dest->coord.y - n->coord.y;
+            return std::sqrt(dx*dx + dy*dy); // euclidean
+        };
+
+        for (auto &[id, node] : graph.nodes) {
+            dist[node] = INF;
+        }
+        dist[src] = 0.0;     
+        
+        std::priority_queue<Entry, std::vector<Entry>, std::greater<>> q;
+
+        q.push({src, dist[src] + h(src)});
+
+        while(!q.empty()){
+            auto [curr_node, _] = q.top();
+            q.pop();
+
+            if (curr_node == dest) break;
+
+            for (const auto &edge: curr_node->edges) {
+                Node* adj = (edge->src == curr_node) ? edge->dest : edge->src;
+
+                if (edge->one_way && edge->src != curr_node) {
+                    continue;
+                }
+
+                double new_dist = dist[curr_node] + edge->length;
+
+                if (new_dist < dist[adj]) {
+                    dist[adj] = new_dist;
+                    parent[adj] = curr_node;
+
+                    q.push({adj, new_dist + h(adj)});
+
+                    visited_edges.emplace_back(curr_node->coord,
+                        adj->coord,
+                        edge->color,
+                        edge->thickness    
+                    );
+                }
+            }
+        }
 
         set_final_path(parent, nullptr);
     }
