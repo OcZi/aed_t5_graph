@@ -64,11 +64,11 @@ class PathFindingManager {
         std::priority_queue<Entry, std::vector<Entry>, std::greater<>> queue;
         std::set<Node*> visited;
 
-        auto f = [&](const Node* node) -> double // Manhattan distance
+        auto f = [&](const Node* node) -> double 
         {
-            const auto dx = (dest->coord.x - node->coord.x);
-            const auto dy = (dest->coord.y - node->coord.y);
-            return dx * dx + dy * dy;
+            double dx = dest->coord.x - node->coord.x;
+            double dy = dest->coord.y - node->coord.y;
+            return std::sqrt(dx*dx + dy*dy); // euclidiana 
         };
 
         queue.push({src, f(src)});
