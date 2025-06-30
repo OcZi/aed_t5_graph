@@ -17,7 +17,8 @@
 
 
 // Este enum sirve para identificar el algoritmo que el usuario desea simular
-enum Algorithm {
+enum Algorithm
+{
     None,
     Dijkstra,
     AStar,
@@ -37,109 +38,131 @@ enum Algorithm {
 //     - src            : Nodo incial del que se parte en el algoritmo seleccionado
 //     - dest           : Nodo al que se quiere llegar desde 'src'
 //*
-class PathFindingManager {
-    WindowManager *window_manager;
+class PathFindingManager
+{
+    WindowManager* window_manager;
     std::vector<sfLine> path;
     std::vector<sfLine> visited_edges;
 
-    struct Entry {
+    struct Entry
+    {
         Node* node;
         double dist;
 
-        bool operator < (const Entry& other) const {
+        bool operator <(const Entry& other) const
+        {
             return dist < other.dist;
         }
 
-        bool operator > (const Entry& other) const {
+        bool operator >(const Entry& other) const
+        {
             return dist > other.dist;
         }
     };
 
     static constexpr double INF = std::numeric_limits<double>::max();
 
-    void bfs(const Graph &graph)
+    void bfs(const Graph& graph)
     {
-        std::unordered_map<Node *, Node *> parent;
+        std::unordered_map<Node*, Node*> parent;
 
-        std::priority_queue<Entry, std::vector<Entry>, std::greater<>> queue;
+        std::queue<Entry> queue;
         std::set<Node*> visited;
+        int render_counter{};
 
-        auto f = [&](const Node* node) -> double 
+        auto f = [&](const Node* node) -> double
         {
             double dx = dest->coord.x - node->coord.x;
             double dy = dest->coord.y - node->coord.y;
-            return std::sqrt(dx*dx + dy*dy); // euclidiana 
+            return std::sqrt(dx * dx + dy * dy); // euclidiana
         };
 
         queue.push({src, f(src)});
         visited.insert(src);
 
-        while (!queue.empty()) {
-            auto [node, dist] = queue.top(); queue.pop();;
-            if (node == dest) break;
+        while (!queue.empty())
+        {
+            auto [curr_node, dist] = queue.front();
+            queue.pop();
 
-            for (const auto &edge: node->edges)
-                if (auto adj_node = edge->dest;
-                    !visited.count(adj_node))
-                {
-                    visited.insert(node);
-                    parent[adj_node] = node;
+            if (curr_node == dest)
+            {
+                std::cout << "BFS Done" << std::endl;
+                break;
+            }
 
-                    // Draw each edge per iteration
-                    visited_edges.emplace_back(node->coord, adj_node->coord, edge->color, edge->thickness);
-                    render();
+            for (const auto& edge : curr_node->edges)
+            {
+                Node* adj = (edge->src == curr_node) ? edge->dest : edge->src;
+                if (edge->one_way && edge->src != curr_node || visited.count(adj)) continue;
 
-                    queue.push({adj_node, f(adj_node)});
-                }
+                visited.insert(adj);
+                parent[adj] = curr_node;
+
+                // Draw each edge per iteration
+                visited_edges.emplace_back(curr_node->coord, adj->coord, edge->color, edge->thickness);
+                if (++render_counter % 100 == 0) render();
+
+                queue.push({adj, f(adj)});
+            }
+
         }
 
-        set_final_path(parent, dest);
+        set_final_path(parent);
     }
 
     /*
-    Graph 
+    Graph
         std::map<size_t, Node *> nodes;
         std::vector<Edge *> edges;
     */
 
-    void dijkstra(Graph &graph) {
-        std::unordered_map<Node *, Node *> parent;
+    void dijkstra(Graph& graph)
+    {
+        std::unordered_map<Node*, Node*> parent;
         std::unordered_map<Node*, double> dist;
+        int render_counter{};
 
-        for (auto& [id, node]: graph.nodes){
+        for (auto& [id, node] : graph.nodes)
+        {
             dist[node] = INF;
         }
         dist[src] = 0;
 
         std::priority_queue<Entry, std::vector<Entry>, std::greater<>> q;
-        
+
         q.push({src, 0});
 
-        while(!q.empty()) {
+        while (!q.empty())
+        {
             auto [curr_node, curr_dist] = q.top();
             q.pop();
 
-            if (curr_dist > dist[curr_node]){
+            if (curr_dist > dist[curr_node])
+            {
                 continue; // no vale
             }
 
-            if (curr_node == dest){
+            if (curr_node == dest)
+            {
                 break;
             }
 
-            for (const auto &edge : curr_node->edges){
+            for (const auto& edge : curr_node->edges)
+            {
                 Node* adj = (edge->src == curr_node) ? edge->dest : edge->src;
 
-                if (edge->one_way && edge->src != curr_node) {
+                if (edge->one_way && edge->src != curr_node)
+                {
                     continue;
                 }
 
                 double new_dist = dist[curr_node] + edge->length;
 
-                if (new_dist < dist[adj]){
+                if (new_dist < dist[adj])
+                {
                     dist[adj] = new_dist;
                     parent[adj] = curr_node;
-                    q.push({adj, new_dist});
 
                     visited_edges.emplace_back(
                         curr_node->coord,
@@ -147,72 +170,82 @@ class PathFindingManager {
                         edge->color,
                         edge->thickness
                     );
+                    if (++render_counter % 100 == 0) render();
+
+                    q.push({adj, new_dist});
                 }
             }
         }
 
-        set_final_path(parent, nullptr);
+        set_final_path(parent);
     }
 
-    void a_star(Graph &graph) {
-        std::unordered_map<Node *, Node *> parent;
-        // TODO: Add your code here
-
+    void a_star(Graph& graph)
+    {
+        std::unordered_map<Node*, Node*> parent;
         std::unordered_map<Node*, double> dist;
+        int render_counter{};
 
-        auto h = [&](Node* n){
+        auto h = [&](Node* n)
+        {
             double dx = dest->coord.x - n->coord.x;
             double dy = dest->coord.y - n->coord.y;
-            return std::sqrt(dx*dx + dy*dy); // euclidean
+            return std::sqrt(dx * dx + dy * dy); // euclidean
         };
 
-        for (auto &[id, node] : graph.nodes) {
+        for (auto& [id, node] : graph.nodes)
+        {
             dist[node] = INF;
         }
-        dist[src] = 0.0;     
-        
+        dist[src] = 0.0;
+
         std::priority_queue<Entry, std::vector<Entry>, std::greater<>> q;
 
         q.push({src, dist[src] + h(src)});
 
-        while(!q.empty()){
-            auto [curr_node, _] = q.top();
+        while (!q.empty())
+        {
+            auto [curr_node, node_dist] = q.top();
             q.pop();
+
+            if (node_dist > dist[curr_node] + h(curr_node)) continue;
 
             if (curr_node == dest) break;
 
-            for (const auto &edge: curr_node->edges) {
+            for (const auto& edge : curr_node->edges)
+            {
                 Node* adj = (edge->src == curr_node) ? edge->dest : edge->src;
-
-                if (edge->one_way && edge->src != curr_node) {
-                    continue;
-                }
 
                 double new_dist = dist[curr_node] + edge->length;
 
-                if (new_dist < dist[adj]) {
+                if (new_dist < dist[adj])
+                {
                     dist[adj] = new_dist;
                     parent[adj] = curr_node;
 
-                    q.push({adj, new_dist + h(adj)});
 
                     visited_edges.emplace_back(curr_node->coord,
-                        adj->coord,
-                        edge->color,
-                        edge->thickness    
+                                               adj->coord,
+                                               edge->color,
+                                               edge->thickness
                     );
+
+                    if (++render_counter % 100 == 0) render();
+
+                    q.push({adj, new_dist + h(adj)});
                 }
             }
         }
 
-        set_final_path(parent, nullptr);
+        set_final_path(parent);
     }
 
     //* --- render ---
     // En cada iteración de los algoritmos esta función es llamada para dibujar los cambios en el 'window_manager'
-    void render() {
-        sf::sleep(sf::milliseconds(5));
-        auto &w = window_manager->get_window();
+    void render()
+    {
+        sf::sleep(sf::milliseconds(1));
+        auto& w = window_manager->get_window();
 
         // Black screen it to show only the path
         w.clear(sf::Color::Black);
@@ -235,14 +268,17 @@ class PathFindingManager {
     //
     // Este path será utilizado para hacer el 'draw()' del 'path' entre 'src' y 'dest'.
     //*
-    void set_final_path(std::unordered_map<Node *, Node *> &parent, Node *node) {
+    void set_final_path(std::unordered_map<Node*, Node*>& parent)
+    {
         std::vector<sfLine> newPath;
-        Node* current = node;
+        Node* current = dest;
 
-        while (current && parent.count(current)) {
+        while (current && parent.count(current))
+        {
             Node* prev = parent[current];
             if (prev == current || prev == nullptr) break;
             newPath.emplace_back(current->coord, prev->coord, sf::Color::Blue, default_thickness);
+            std::cout << "drawing goal path " << current->coord.x << ", " << current->coord.y << std::endl;
             current = prev;
         }
 
@@ -250,13 +286,17 @@ class PathFindingManager {
     }
 
 public:
-    Node *src = nullptr;
-    Node *dest = nullptr;
+    Node* src = nullptr;
+    Node* dest = nullptr;
 
-    explicit PathFindingManager(WindowManager *window_manager) : window_manager(window_manager) {}
+    explicit PathFindingManager(WindowManager* window_manager) : window_manager(window_manager)
+    {
+    }
 
-    void exec(Graph &graph, Algorithm algorithm) {
-        if (src == nullptr || dest == nullptr) {
+    void exec(Graph& graph, Algorithm algorithm)
+    {
+        if (src == nullptr || dest == nullptr)
+        {
             return;
         }
 
@@ -266,6 +306,7 @@ public:
         }
 
         window_manager->set_extra_lines(true);
+        visited_edges.clear();
         switch (algorithm)
         {
         case None: // just because C++ warning
@@ -280,42 +321,51 @@ public:
         }
     }
 
-    void reset() {
+    void reset()
+    {
         path.clear();
         visited_edges.clear();
 
-        if (src) {
+        if (src)
+        {
             src->reset();
             src = nullptr;
             // ^^^ Pierde la referencia luego de restaurarlo a sus valores por defecto
         }
-        if (dest) {
+        if (dest)
+        {
             dest->reset();
             dest = nullptr;
             // ^^^ Pierde la referencia luego de restaurarlo a sus valores por defecto
         }
     }
 
-    void draw() {
+    void draw()
+    {
         // Dibujar todas las aristas visitadas
-        if (window_manager->show_extra_lines()) {
-            for (sfLine &line: visited_edges) {
+        if (window_manager->show_extra_lines())
+        {
+            for (sfLine& line : visited_edges)
+            {
                 line.draw(window_manager->get_window(), sf::RenderStates::Default);
             }
         }
 
         // Dibujar el camino resultante entre 'str' y 'dest'
-        for (sfLine &line: path) {
+        for (sfLine& line : path)
+        {
             line.draw(window_manager->get_window(), sf::RenderStates::Default);
         }
 
         // Dibujar el nodo inicial
-        if (src != nullptr) {
+        if (src != nullptr)
+        {
             src->draw(window_manager->get_window());
         }
 
         // Dibujar el nodo final
-        if (dest != nullptr) {
+        if (dest != nullptr)
+        {
             dest->draw(window_manager->get_window());
         }
     }
