@@ -218,6 +218,11 @@ class PathFindingManager
 
                 double new_dist = dist[curr_node] + edge->length;
 
+                if (edge->one_way && edge->src != curr_node){
+                    continue;
+                }
+
+
                 if (new_dist < dist[adj])
                 {
                     dist[adj] = new_dist;
