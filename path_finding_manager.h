@@ -13,7 +13,7 @@
 #include "window_manager.h"
 #include "graph.h"
 #include <unordered_map>
-#include <set>
+#include <unordered_set>
 
 
 // Este enum sirve para identificar el algoritmo que el usuario desea simular
@@ -64,51 +64,48 @@ class PathFindingManager
 
     void bfs(const Graph& graph)
     {
-        std::unordered_map<Node*, Node*> parent;
+        std::unordered_map<Node*, Node*> parent; // O(1)
 
-        std::queue<Entry> queue;
-        std::set<Node*> visited;
-        int render_counter{};
+        std::queue<Entry> queue; // O(1)
+        std::unordered_set<Node*> visited; // O(1)
+        int render_counter{}; // O(1)
 
         auto f = [&](const Node* node) -> double
         {
-            double dx = dest->coord.x - node->coord.x;
-            double dy = dest->coord.y - node->coord.y;
-            return std::sqrt(dx * dx + dy * dy); // euclidiana
+            double dx = dest->coord.x - node->coord.x; // O(1)
+            double dy = dest->coord.y - node->coord.y; // O(1)
+            return std::sqrt(dx * dx + dy * dy); // euclidiana, O(log(n))
         };
 
-        queue.push({src, f(src)});
-        visited.insert(src);
+        queue.push({src, f(src)}); // O(1)
+        visited.insert(src); // O(1)
 
-        while (!queue.empty())
+        while (!queue.empty()) // O(V)
         {
-            auto [curr_node, dist] = queue.front();
-            queue.pop();
+            auto [curr_node, dist] = queue.front(); // O(1)
+            queue.pop(); // O(1)
 
-            if (curr_node == dest)
+            if (curr_node == dest) break; // O(1)
+
+            for (const auto& edge : curr_node->edges) // O(E)
             {
-                std::cout << "BFS Done" << std::endl;
-                break;
-            }
+                Node* adj = (edge->src == curr_node) ? edge->dest : edge->src; // O(1)
+                if (edge->one_way && edge->src != curr_node || visited.count(adj)) continue; // O(1 + 1)
 
-            for (const auto& edge : curr_node->edges)
-            {
-                Node* adj = (edge->src == curr_node) ? edge->dest : edge->src;
-                if (edge->one_way && edge->src != curr_node || visited.count(adj)) continue;
-
-                visited.insert(adj);
-                parent[adj] = curr_node;
+                visited.insert(adj); // O(1)
+                parent[adj] = curr_node; // O(1)
 
                 // Draw each edge per iteration
-                visited_edges.emplace_back(curr_node->coord, adj->coord, edge->color, edge->thickness);
-                if (++render_counter % 100 == 0) render();
+                visited_edges.emplace_back(curr_node->coord, adj->coord, edge->color, edge->thickness); // O(1)
+                if (++render_counter % 100 == 0) render(); // O(1)
 
-                queue.push({adj, f(adj)});
+                queue.push({adj, f(adj)}); // O(1)
             }
 
         }
 
-        set_final_path(parent);
+        set_final_path(parent); // O(P), P = |parent|
+        // => O(bfs) = V*E + P
     }
 
     /*
@@ -278,7 +275,6 @@ class PathFindingManager
             Node* prev = parent[current];
             if (prev == current || prev == nullptr) break;
             newPath.emplace_back(current->coord, prev->coord, sf::Color::Blue, default_thickness);
-            std::cout << "drawing goal path " << current->coord.x << ", " << current->coord.y << std::endl;
             current = prev;
         }
 
