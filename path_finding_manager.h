@@ -62,7 +62,7 @@ class PathFindingManager
 
     static constexpr double INF = std::numeric_limits<double>::max();
 
-    void bfs(const Graph& graph)
+    void bfs(const Graph& graph) // SOLO H
     {
         std::unordered_map<Node*, Node*> parent;
 
@@ -70,11 +70,11 @@ class PathFindingManager
         std::set<Node*> visited;
         int render_counter{};
 
-        auto f = [&](const Node* node) -> double
-        {
-            double dx = dest->coord.x - node->coord.x;
-            double dy = dest->coord.y - node->coord.y;
-            return std::sqrt(dx * dx + dy * dy); // euclidiana
+        auto f = [&](Node* n) -> double {
+            double dx = dest->coord.x - n->coord.x;
+            double dy = dest->coord.y - n->coord.y;
+            double euclidean_dist = std::sqrt(dx * dx + dy * dy);
+            return euclidean_dist / graph.max_speed_in_graph;  // Usa la velocidad del grafo
         };
 
         queue.push({src, f(src)});
@@ -117,7 +117,7 @@ class PathFindingManager
         std::vector<Edge *> edges;
     */
 
-    void dijkstra(Graph& graph)
+    void dijkstra(Graph& graph) // SOLO G
     {
         std::unordered_map<Node*, Node*> parent;
         std::unordered_map<Node*, double> dist;
@@ -157,7 +157,7 @@ class PathFindingManager
                     continue;
                 }
 
-                double new_dist = dist[curr_node] + edge->length;
+                double new_dist = dist[curr_node] + edge->get_travel_time();
 
                 if (new_dist < dist[adj])
                 {
@@ -180,17 +180,17 @@ class PathFindingManager
         set_final_path(parent);
     }
 
-    void a_star(Graph& graph)
+ void a_star(Graph& graph)
     {
         std::unordered_map<Node*, Node*> parent;
         std::unordered_map<Node*, double> dist;
         int render_counter{};
 
-        auto h = [&](Node* n)
-        {
+        auto h = [&](Node* n) -> double {
             double dx = dest->coord.x - n->coord.x;
             double dy = dest->coord.y - n->coord.y;
-            return std::sqrt(dx * dx + dy * dy); // euclidean
+            double euclidean_dist = std::sqrt(dx * dx + dy * dy);
+            return euclidean_dist / graph.max_speed_in_graph;
         };
 
         for (auto& [id, node] : graph.nodes)
@@ -205,10 +205,13 @@ class PathFindingManager
 
         while (!q.empty())
         {
-            auto [curr_node, node_dist] = q.top();
+            auto [curr_node, f_curr] = q.top();
             q.pop();
 
-            if (node_dist > dist[curr_node] + h(curr_node)) continue;
+            if (f_curr > dist[curr_node] + h(curr_node) + 1e-9)
+            {
+                continue;
+            }
 
             if (curr_node == dest) break;
 
@@ -216,13 +219,16 @@ class PathFindingManager
             {
                 Node* adj = (edge->src == curr_node) ? edge->dest : edge->src;
 
-                double new_dist = dist[curr_node] + edge->length;
+                if (edge->one_way && edge->src != curr_node) {
+                    continue;
+                }
 
-                if (new_dist < dist[adj])
+                double new_g = dist[curr_node] + edge->get_travel_time();
+
+                if (new_g < dist[adj])
                 {
-                    dist[adj] = new_dist;
+                    dist[adj] = new_g;
                     parent[adj] = curr_node;
-
 
                     visited_edges.emplace_back(curr_node->coord,
                                                adj->coord,
@@ -232,7 +238,7 @@ class PathFindingManager
 
                     if (++render_counter % 100 == 0) render();
 
-                    q.push({adj, new_dist + h(adj)});
+                    q.push({adj, new_g + h(adj)});
                 }
             }
         }

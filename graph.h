@@ -30,12 +30,12 @@ struct Graph {
     WindowManager *window_manager;
     std::map<size_t, Node *> nodes;
     std::vector<Edge *> edges;
-
+    double max_speed_in_graph; 
     explicit Graph(WindowManager* window_manager): window_manager(window_manager) {}
 
     void parse_csv(const std::string &nodes_path, const std::string &edges_path) {
         Node::parse_csv(nodes_path, this->nodes);
-        Edge::parse_csv(edges_path, this->edges, this->nodes);
+        Edge::parse_csv(edges_path, this->edges, this->nodes, this->max_speed_in_graph);
 
         for (Edge *edge: edges) {
             nodes[edge->src->id]->edges.push_back(edge);

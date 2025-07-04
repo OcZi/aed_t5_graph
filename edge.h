@@ -10,6 +10,7 @@
 #include <cstring>
 #include <fstream>
 #include <cmath>
+#include <iostream>
 
 // Color por defecto de todas las aristas (usado por SFML)
 sf::Color default_edge_color = sf::Color(255, 200, 100);
@@ -84,6 +85,8 @@ struct Edge {
     sf::Color color = default_edge_color;
     float thickness = default_thickness;
 
+    
+
     explicit Edge(Node *src, Node *dest, int max_speed, double length, bool one_way, int lanes) : max_speed(max_speed),
                                                                                                   length(length),
                                                                                                   one_way(one_way),
@@ -93,9 +96,9 @@ struct Edge {
     }
 
     static void
-    parse_csv(const std::string &edges_path, std::vector<Edge *> &edges, std::map<std::size_t, Node *> &nodes) {
+    parse_csv(const std::string &edges_path, std::vector<Edge *> &edges, std::map<std::size_t, Node *> &nodes, double &max_speed_in_graph) {
         edges.reserve(790'509);
-
+        max_speed_in_graph = 0.0;  
         std::ifstream file(edges_path);
         char *header = new char[50];
         header[49] = '\0';
@@ -143,6 +146,10 @@ struct Edge {
                     std::strcmp(oneway, "True") == 0,
                     std::stoi(lanes)
             );
+                        
+            if (edge->max_speed > max_speed_in_graph) {
+                max_speed_in_graph = edge->max_speed;
+            }
             edges.push_back(edge);
 
             delete[] src;
@@ -156,6 +163,11 @@ struct Edge {
     void draw(sf::RenderWindow &window) const {
         sfLine line(src->coord, dest->coord, color, thickness);
         line.draw(window, sf::RenderStates::Default);
+    }
+
+    double get_travel_time() const {
+        double lanes_factor = 0.5 * lanes + 0.5; // evita lanes=0 y suaviza impacto
+        return length / (max_speed * lanes_factor);
     }
 };
 
