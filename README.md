@@ -1,12 +1,13 @@
 # Tarea de Grafos
 
 ## Integrantes: 
-- 1 ____   _____
-- 2 ____   _____
-- 3 ____   _____
+- 1 Salvador Donayre
+- 2 Miranda Salazar
 
-## Objetivo: 
-El objetivo de esta tarea es implementar un **Path Finder** para la ciudad de Lima. 
+## Video
+
+https://drive.google.com/file/d/14rKXIvv9el7KKk5ijWOJ_ua_thMMZjai/view?usp=drivesdk
+ 
 
 <p align="center">
     <img src=https://github.com/utec-cs-aed/homework_graph/assets/79115974/b63f69db-17eb-417a-8aa1-8483d8dcdaf0 / >
