@@ -65,8 +65,7 @@ class PathFindingManager
     void bfs(const Graph& graph)
     {
         std::unordered_map<Node*, Node*> parent; // O(1)
-
-        std::queue<Entry> queue; // O(1)
+        std::priority_queue<Entry, std::vector<Entry>, std::greater<>> queue;
         std::unordered_set<Node*> visited; // O(1)
         int render_counter{}; // O(1)
 
@@ -74,7 +73,7 @@ class PathFindingManager
         {
             double dx = dest->coord.x - node->coord.x; // O(1)
             double dy = dest->coord.y - node->coord.y; // O(1)
-            return std::sqrt(dx * dx + dy * dy); // euclidiana, O(log(n))
+            return std::sqrt(dx * dx + dy * dy); // O(1)
         };
 
         queue.push({src, f(src)}); // O(1)
@@ -82,12 +81,12 @@ class PathFindingManager
 
         while (!queue.empty()) // O(V)
         {
-            auto [curr_node, dist] = queue.front(); // O(1)
+            auto [curr_node, dist] = queue.top(); // O(1)
             queue.pop(); // O(1)
 
             if (curr_node == dest) break; // O(1)
 
-            for (const auto& edge : curr_node->edges) // O(E)
+            for (const auto& edge : curr_node->edges) // Recorre cada edge del nodo, O(grad(curr_node))
             {
                 Node* adj = (edge->src == curr_node) ? edge->dest : edge->src; // O(1)
                 if (edge->one_way && edge->src != curr_node || visited.count(adj)) continue; // O(1 + 1)
@@ -104,8 +103,10 @@ class PathFindingManager
 
         }
 
-        set_final_path(parent); // O(P), P = |parent|
-        // => O(bfs) = V*E + P
+        set_final_path(parent); // O(P), con P ≤ V
+        // Cada vértice se explora como máximo una sola vez.
+        // Cada arista se explora una sola vez gracias al visited set.
+        // => O(bfs) = O(V + E + P), para P ≤ V
     }
 
     /*
@@ -116,81 +117,87 @@ class PathFindingManager
 
     void dijkstra(Graph& graph)
     {
-        std::unordered_map<Node*, Node*> parent;
-        std::unordered_map<Node*, double> dist;
-        int render_counter{};
+        std::unordered_map<Node*, Node*> parent; // O(1)
+        std::unordered_map<Node*, double> dist; // O(1)
+        int render_counter{}; // O(1)
 
-        for (auto& [id, node] : graph.nodes)
+        for (auto& [id, node] : graph.nodes) // O(V)
         {
             dist[node] = INF;
         }
         dist[src] = 0;
 
-        std::priority_queue<Entry, std::vector<Entry>, std::greater<>> q;
+        std::priority_queue<Entry, std::vector<Entry>, std::greater<>> q; // O(1)
 
-        q.push({src, 0});
+        q.push({src, 0}); // O(1)
 
-        while (!q.empty())
+        // O(V)
+        while (!q.empty()) // Se ejecuta 'E', pero es aceptado 'V' veces por el check de mejor distancia.
         {
-            auto [curr_node, curr_dist] = q.top();
-            q.pop();
+            auto [curr_node, curr_dist] = q.top(); // O(1)
+            q.pop(); // O(log V), aplica heapify
 
-            if (curr_dist > dist[curr_node])
+            if (curr_dist > dist[curr_node]) // check de mejor distancia, O(1)
             {
                 continue; // no vale
             }
 
-            if (curr_node == dest)
+            if (curr_node == dest) // O(1)
             {
                 break;
             }
 
-            for (const auto& edge : curr_node->edges)
+            for (const auto& edge : curr_node->edges) // O(E)
             {
-                Node* adj = (edge->src == curr_node) ? edge->dest : edge->src;
+                Node* adj = (edge->src == curr_node) ? edge->dest : edge->src; // O(1)
 
-                if (edge->one_way && edge->src != curr_node)
+                if (edge->one_way && edge->src != curr_node) // O(1)
                 {
                     continue;
                 }
 
-                double new_dist = dist[curr_node] + edge->length;
+                double new_dist = dist[curr_node] + edge->length; // O(1)
 
-                if (new_dist < dist[adj])
+                if (new_dist < dist[adj]) // O(1)
                 {
-                    dist[adj] = new_dist;
-                    parent[adj] = curr_node;
+                    dist[adj] = new_dist; // O(1)
+                    parent[adj] = curr_node; // O(1)
 
-                    visited_edges.emplace_back(
+                    visited_edges.emplace_back( // O(1)
                         curr_node->coord,
                         adj->coord,
                         edge->color,
                         edge->thickness
                     );
-                    if (++render_counter % 100 == 0) render();
+                    if (++render_counter % 100 == 0) render(); // O(1)
 
-                    q.push({adj, new_dist});
+                    q.push({adj, new_dist}); // O(log V), hasta O(E) inserts
                 }
             }
         }
 
-        set_final_path(parent);
+        set_final_path(parent); // O(P), para P ≤ V
+        // Dijkstra con cola de prioridad (min-heap):
+        // Cada nodo se procesa a lo más una vez válidamente.
+        // Cada arista se relaja a lo más una vez.
+        // Cola de prioridad maneja entradas con costo O(log V).
+        // => Complejidad: O((V + E) * log V)
     }
 
     void a_star(Graph& graph)
     {
-        std::unordered_map<Node*, Node*> parent;
-        std::unordered_map<Node*, double> dist;
-        int render_counter{};
+        std::unordered_map<Node*, Node*> parent; // O(1)
+        std::unordered_map<Node*, double> dist; // O(1)
+        int render_counter{}; // O(1)
 
-        auto h = [&](Node* n)
+        auto h = [&](Node* n) // Función heurística
         {
-            double dx = dest->coord.x - n->coord.x;
-            double dy = dest->coord.y - n->coord.y;
-            return std::sqrt(dx * dx + dy * dy); // euclidean
+            double dx = dest->coord.x - n->coord.x; // O(1)
+            double dy = dest->coord.y - n->coord.y; // O(1)
+            return std::sqrt(dx * dx + dy * dy); // euclidean, O(1)
         };
 
-        for (auto& [id, node] : graph.nodes)
+        for (auto& [id, node] : graph.nodes) // O(V)
         {
             dist[node] = INF;
         }
@@ -198,48 +205,48 @@ class PathFindingManager
 
         std::priority_queue<Entry, std::vector<Entry>, std::greater<>> q;
 
-        q.push({src, dist[src] + h(src)});
+        q.push({src, dist[src] + h(src)}); // O(log V)
 
-        while (!q.empty())
+        while (!q.empty()) // O(V)
         {
-            auto [curr_node, node_dist] = q.top();
-            q.pop();
+            auto [curr_node, node_dist] = q.top(); // O(1)
+            q.pop(); // O(log V)
 
-            if (node_dist > dist[curr_node] + h(curr_node)) continue;
+            if (node_dist > dist[curr_node] + h(curr_node)) continue; // O(1)
 
-            if (curr_node == dest) break;
+            if (curr_node == dest) break; // O(1)
 
-            for (const auto& edge : curr_node->edges)
+            for (const auto& edge : curr_node->edges) // O(grad(curr_node)), en total O(E)
             {
-                Node* adj = (edge->src == curr_node) ? edge->dest : edge->src;
+                Node* adj = (edge->src == curr_node) ? edge->dest : edge->src; // O(1)
 
-                double new_dist = dist[curr_node] + edge->length;
+                double new_dist = dist[curr_node] + edge->length; // O(1)
 
-                if (edge->one_way && edge->src != curr_node){
+                if (edge->one_way && edge->src != curr_node) { // O(1)
                     continue;
                 }
 
 
                 if (new_dist < dist[adj])
                 {
-                    dist[adj] = new_dist;
-                    parent[adj] = curr_node;
+                    dist[adj] = new_dist; // O(1)
+                    parent[adj] = curr_node; // O(1)
 
 
-                    visited_edges.emplace_back(curr_node->coord,
+                    visited_edges.emplace_back(curr_node->coord, // O(1)
                                                adj->coord,
                                                edge->color,
                                                edge->thickness
                     );
 
-                    if (++render_counter % 100 == 0) render();
+                    if (++render_counter % 100 == 0) render(); // O(1)
 
-                    q.push({adj, new_dist + h(adj)});
+                    q.push({adj, new_dist + h(adj)}); // O(log V)
                 }
             }
         }
 
-        set_final_path(parent);
+        set_final_path(parent); // O(P), donde P ≤ V
     }
 
     //* --- render ---
